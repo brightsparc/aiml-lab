@@ -1,4 +1,4 @@
-# Lab 1: Introduction to Amazon Sagemaker
+# Lab 1: Introduction to Amazon SageMaker
 
 In this lab, we will be training a machine learning algorithm on the MNIST dataset using MXNet and Gluon.  We will deploy this model, and test it by drawing some hand written digits in the browser.
 
@@ -14,13 +14,13 @@ You have an active AWS account with credits and permissions to run sagemaker job
 
 Following is a list of steps for training and deploying a machine learning model with Amazon Sagemaker.
 
-  1. [Create Notebook Instance](#create-notebook-instance)
-  1. [Launch Sample Notebook](#launch-sample-notebook)
-  1. [Download dataset](#download-dataset)
-  1. [Train model](#train-model)
-  1. [Deploy model](#deploy-model)
-  2. [Perform Inference](#perform-inference)
-  3. [Delete Endpoint](#delete-endpoint)
+  1. [Create Notebook Instance](#1-create-notebook-instance)
+  2. [Launch Sample Notebook](#2-launch-sample-notebook)
+  3. [Download dataset](#3-download-dataset)
+  4. [Train model](#4-train-model)
+  5. [Deploy model](#5-deploy-model)
+  6. [Perform Inference](#6-perform-inference)
+  7. [Delete Endpoint](#7-delete-endpoint)
 
 ### 1. Create Notebook Instance
 
@@ -62,7 +62,7 @@ Let's click through the first few cells to download data and upload it to an S3 
 
 ### 4. Train Model
 
-We define MXNet estimator for a multi-layer percetron nerual network architecture. 
+We define MXNet estimator for a multi-layer percetron nerual network architecture.
 
 ![Network architecture](screenshots/08-network-architecture.gif)
 
@@ -74,7 +74,7 @@ The training process should take approximately 5 minutes on a `ml.c4.xlarge` ins
 
 ![Training complete](screenshots/09-training-complete.png)
 
-### 4. Deploy Model
+### 5. Deploy Model
 
 With training complete, you can `deploy` your model so that you can predict the most likely digit given a handwritten input.
 
@@ -90,7 +90,7 @@ Along with an *Endpoint* and its configuration.
 
 ![Deploy endpoint](screenshots/12-deploy-endpoint.png)
 
-### 5. Perform Inference
+### 6. Perform Inference
 
 With you endpoint deployed, execute the cell that renders the `HTML` widget that allows you to draw an *handwritten digit* and capture the output of this `28x28` pixel in a `data` variable.  Note you can hold down the mouse and draw, or click on the widget for individual pixels.
 
@@ -98,12 +98,8 @@ Once you are happy with your drawing, execute the `predict` function to return a
 
 ![Deploy endpoint](screenshots/13-perform-inference.png)
 
-### 6. Delete Endpoint
+### 7. Delete Endpoint
 
 Congratulations you have now completed the lab.  Be sure to execute the `delete_endpoint` step to terminate the instance running your ML inference.
 
 ![Deploy endpoint](screenshots/14-delete-endpoint.png)
-
-
-
-
