@@ -2,5 +2,5 @@
 
 Welcome to the AWS immersion day lab environment.
 
-* [[lab1|Lab 1]] Introduction to Amazon SageMaker
-* [[lab2|Lab 2]] Visual Search
+* [Lab 1](lab1/Readme.md) Introduction to Amazon SageMaker
+* [Lab 2](lab2/Readme.md) Visual Search
