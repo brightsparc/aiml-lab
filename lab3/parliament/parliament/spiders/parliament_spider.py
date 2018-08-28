@@ -13,7 +13,8 @@ from PIL import Image
 class ParliamentSpider(scrapy.Spider):
     name = "parliament"
     start_urls = [
-        'https://www.aph.gov.au/Senators_and_Members/Members/Members_Photos'
+        'https://www.aph.gov.au/Senators_and_Members/Members/Members_Photos',
+        'https://www.aph.gov.au/Senators_and_Members/Senators/Senators_photos'
     ]
     output = "images"
 
