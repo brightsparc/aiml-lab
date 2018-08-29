@@ -1,4 +1,4 @@
-# Lab 1: Introduction to Amazon SageMaker
+# Lab 2: Introduction to Amazon SageMaker
 
 In this lab, we will be training a machine learning algorithm on the MNIST dataset using MXNet and Gluon.  We will deploy this model, and test it by drawing some hand written digits in the browser.
 
