@@ -1,0 +1,74 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Outputs" : {
+    "SageMakerExecutionRole": {
+      "Description": "The role for running SageMaker Notebooks",
+      "Value" : { "Ref": "LabExecutionRole" }
+    },
+    "SageMakerS3Bucket": {
+      "Description": "The SageMaker s3 bucket for the current region and account",
+      "Value" : { "Ref": "LabS3Bucket" }
+    }
+  },
+  "Resources": {
+    "LabExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "Description": "SageMaker execution role created for account.",
+        "RoleName": {
+          "Fn::Join": [
+            "-",
+            [
+              "AmazonSageMaker",
+              "ExecutionRole",
+              { "Ref": "AWS::AccountId" }
+            ]
+          ]
+        },
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "sagemaker.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/service-role/",
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/AmazonS3FullAccess",
+          "arn:aws:iam::aws:policy/AmazonTranscribeFullAccess",
+          "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess",
+          "arn:aws:iam::aws:policy/ComprehendFullAccess",
+          "arn:aws:iam::aws:policy/AmazonRekognitionFullAccess",
+          "arn:aws:iam::aws:policy/AmazonPollyFullAccess",
+          "arn:aws:iam::aws:policy/AmazonLexFullAccess",
+          "arn:aws:iam::aws:policy/TranslateReadOnly",
+          "arn:aws:iam::aws:policy/AmazonSageMakerFullAccess"
+        ]
+      }
+    },
+    "LabS3Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": {
+          "Fn::Join": [
+            "-",
+            [
+              "sagemaker",
+              { "Ref": "AWS::Region" },
+              { "Ref": "AWS::AccountId" }
+            ]
+          ]
+        }
+      }
+    }
+  }
+}
