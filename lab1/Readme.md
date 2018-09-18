@@ -29,3 +29,9 @@ Navigate to the *SageMaker* folder which is the root folder for all your Jupyter
 cd SageMaker
 git clone https://github.com/brightsparc/aiml-lab.git
 ```
+
+Testing some code
+```python
+import numpy as np
+a = 10
+```
