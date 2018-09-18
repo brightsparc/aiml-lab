@@ -1,11 +1,11 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Outputs" : {
-    "SageMakerExecutionRole": {
+    "AmazonSageMakerExecutionRole": {
       "Description": "The role for running SageMaker Notebooks",
       "Value" : { "Ref": "LabExecutionRole" }
     },
-    "SageMakerS3Bucket": {
+    "AmazonSageMakerS3Bucket": {
       "Description": "The SageMaker s3 bucket for the current region and account",
       "Value" : { "Ref": "LabS3Bucket" }
     }

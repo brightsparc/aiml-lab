@@ -16,10 +16,10 @@ aws cloudformation create-stack \
   --capabilities CAPABILITY_NAMED_IAM
 ```
 
-This stack will create:
+This stack will output
 
-* A `SageMaker-LabExecutionRole` for running your SageMaker notebooks
-* An Sagemaker S3 bucket of the name `sagemaker-{Region}-{AccountId}`
+* `Amazon SageMaker ExecutionRole` for running your SageMaker notebooks.
+* `Amazon SageMaker S3 Bucket` for storing the models and artefacts.
 
 ## Labs
 
