@@ -39,7 +39,7 @@ Your notebook will be pending, once it is ready you can click **open** which wil
 
 In the open Jupyter notebook, click the `New` drop down in top right hand corner:
 
-![Create notebook instance](screenshots/00-new-terminal.png | width=200)
+<img src="screenshots/00-new-terminal.png" width="200" />
 
 Then click `Terminal` to launch a new window with a SSH window at the root for the `ec2-user`
 
@@ -65,8 +65,8 @@ Then open the `lab1` folder:
 
 You can now launch each of the notebooks to work through this lab:
 
-1. [Rekognition_Demo.ipynb] - Explore image classification and face recogition.
-2. [Lex_CreateBot_Demo.ipynb] - Create the Lex Chat Bot
-3. [Lex_Demo.ipynb] - Exercise the Lex chat bot
-4. [Polly_Demo.ipynb] - Turn text into speech and back again with Transcribe.
-5. [Comprehend_Demo.ipynb] - Analyse sentiment and entities from twitter including Translating content.
+1. [Rekognition_Demo.ipynb](./Rekognition_Demo.ipynb) - Explore image classification and face recogition.
+2. [Lex_CreateBot_Demo.ipynb](./Lex_CreateBot_Demo.ipynb) - Create the Lex Chat Bot
+3. [Lex_Demo.ipynb](./Lex_Demo.ipynb) - Exercise the Lex chat bot
+4. [Polly_Demo.ipynb](./Polly_Demo.ipynb) - Turn text into speech and back again with Transcribe.
+5. [Comprehend_Demo.ipynb](./Comprehend_Demo.ipynb) - Analyse sentiment and entities from twitter including Translating content.
