@@ -1,4 +1,4 @@
-# AI &amp; Machine Learning for computer vision
+# AI &amp; Machine Learning Lab
 
 Welcome to the AWS immersion day lab environment.
 
