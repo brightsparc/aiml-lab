@@ -14,7 +14,6 @@
     "LabExecutionRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
-        "Description": "SageMaker execution role created for account.",
         "RoleName": {
           "Fn::Join": [
             "-",
