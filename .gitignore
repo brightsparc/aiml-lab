@@ -1,8 +1,10 @@
 .DS_Store
 
-# Output from scaper
+# Output from scraper
 *.jl
+credentials.csv
 images/
+tmp/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

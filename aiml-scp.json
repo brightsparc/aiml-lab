@@ -1,0 +1,29 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "Stmt1537779988000",
+            "Effect": "Allow",
+            "Action": [
+                "sagemaker:*",
+                "iam:*",
+                "ec2:Describe*",
+                "ec2:Dist*",
+                "kms:List*",
+                "s3:*",
+                "dynamodb:*",
+                "rekognition:*",
+                "comprehend:*",
+                "lex:*",
+                "polly:*",
+                "translate:*",
+                "transcribe:*",
+                "logs:*",
+                "codepipeline:*"
+            ],
+            "Resource": [
+                "*"
+            ]
+        }
+    ]
+}
