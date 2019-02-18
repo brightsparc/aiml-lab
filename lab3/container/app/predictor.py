@@ -91,7 +91,6 @@ class ScoringService(object):
 
 # Initialize the Flask application
 app = Flask(__name__)
-app.debug = True
 
 @app.route('/ping', methods=['GET'])
 def ping():
@@ -133,5 +132,6 @@ def test():
     response = json.dumps({ 'predictions': predictions, 'duration': duration })
     return Response(response=response, status=200, mimetype="application/json")
 
-# start flask app
-app.run(host="0.0.0.0", port=5000)
+if __name__ == "__main__":
+    # start flask app
+    app.run(host="0.0.0.0", port=5000)
