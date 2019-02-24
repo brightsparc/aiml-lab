@@ -9,10 +9,11 @@ import mxnet as mx
 import cv2
 
 from flask import Flask, request, Response
+from werkzeug.exceptions import BadRequest
 
 # Include the model name and epoch
 prefix = os.getenv('MODEL_PATH', '/opt/ml/')
-model_str = os.path.join(prefix, 'mobilenet1,0')
+model_str = os.path.join(prefix, 'mobilefacenet/mobilenet1,0')
 image_size = (112,112)
 
 # A singleton for holding the model. This simply loads the model and holds it.
@@ -40,7 +41,7 @@ class ScoringService(object):
         return self.model
     
     @classmethod
-    def predict(self, img):
+    def predict(self, img, bbox=None):
         """For the input, do the predictions and return them.
         Args:
             image: The cv2 image matrix"""
@@ -87,7 +88,7 @@ class ScoringService(object):
             return embedding    
         
         model = self.get_model()
-        return get_feature(model, get_input(img, image_size))
+        return get_feature(model, get_input(img, image_size, bbox))
 
 # Initialize the Flask application
 app = Flask(__name__)
@@ -103,18 +104,19 @@ def ping():
 
 # route http posts to this method
 @app.route('/invocations', methods=['POST'])
-def test():
+def invocations():
     """Do an inference on a single batch of data. In this sample server, we take data as CSV, convert
     it to a pandas data frame for internal use and then convert the predictions back to CSV (which really
     just means one prediction per line, since there's a single column.
     """
 
     print('invocations', request.content_type)
+    body = {}
     if request.content_type == 'application/json':
         # convert json base64 encoded data
-        body = json.loads(request.data)
+        body = request.json 
         if 'data' not in body:
-            raise BadRequestError('Missing image data')
+            raise BadRequest('Missing image data')
         image = base64.b64decode(body['data']) # byte array
     elif request.content_type == 'application/image-x':
         # convert string of image data to uint8
@@ -125,13 +127,20 @@ def test():
     # Do the prediction    
     nparr = np.frombuffer(image, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    bbox = body.get('bbox')
+    print('predict img: {}, bbox: {}'.format(img.shape, bbox))
     start = time.time()
-    predictions = ScoringService.predict(img).tolist()
+    predictions = ScoringService.predict(img, bbox=bbox).tolist()
     duration = time.time()-start
-    
-    response = json.dumps({ 'predictions': predictions, 'duration': duration })
+
+    # return predictions and duration with any body meta data
+    if 'data' in body: 
+        del body['data']
+    body['predictions'] = predictions
+    body['duration'] = duration
+    response = json.dumps(body)
     return Response(response=response, status=200, mimetype="application/json")
 
 if __name__ == "__main__":
     # start flask app
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=8080, debug=True)

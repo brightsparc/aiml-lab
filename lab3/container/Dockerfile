@@ -38,3 +38,5 @@ ENV PATH="/opt/program:${PATH}"
 COPY app /opt/program
 WORKDIR /opt/program
 
+# Default the entrypoint to serve
+ENTRYPOINT ["serve"]
