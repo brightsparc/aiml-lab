@@ -98,8 +98,6 @@ def neo_postprocess(result):
     # Return a normalize embedding
     embedding = l2_normalize(np.array(result)).flatten()
     
-    print('embedding', embedding)
-    
     response_body = json.dumps(embedding.tolist())
     content_type = 'application/json'
 

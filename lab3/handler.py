@@ -8,13 +8,13 @@ model = None
 def lambda_handler(event, context): 
     global model
     
-    current_milli_time = lambda: int(round(time.time() * 1000))
-    
     # Decode the payload
     payload = base64.b64decode(event['Image']['Bytes'])
     bbox = event['BoundingBox']
     image = predict.neo_preprocess(payload, 'application/x-image', bbox=bbox)
-    
+
+    current_milli_time = lambda: int(round(time.time() * 1000))
+
     # Run the inference
     t1 = current_milli_time()
     if model == None:
