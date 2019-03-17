@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Face Embedding Lambda
+Globals:
+  Function:
+    Timeout: 10
+    Runtime: python3.7        
+Resources:
+  MyFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: index.handler
+      CodeUri: ./
+      Handler: handler.lambda_handler
+      Description: Face Detection Lambda
+      Layers:
+        - !Ref FaceEmbeddingLayer
+      Role:
+        Fn::GetAtt:
+        - FaceEmbeddingLambdaRole
+        - Arn
+    FaceEmbeddingLayer:
+        Type: AWS::Serverless::LayerVersion
+        Properties:
+            LayerName: face-embedding
+            Description: Dependencies for Face Deteciton
+            ContentUri: python
+            CompatibleRuntimes:
+              - python3.6
+              - python3.7
+            LicenseInfo: 'MIT'
+            RetentionPolicy: Retain
+  FaceEmbeddingLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaRole

@@ -30,21 +30,28 @@ def transform_fn(model, request_body, request_content_type, accept_type):
     else:
         raise RuntimeError('Accept header must be application/json')
 
-### NOTE: This function is used within lambda layer        
-def neo_inference(data, model_path='compiled', device='cpu'):
+### NOTE: This function is used within lambda layer
+def neo_load(model_path='compiled', device='cpu'):
     import logging
     import os
     from dlr import DLRModel # Import the relative dlr library
     
     model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), model_path)    
-    logging.info('Invoking inference for model: {} on: {}'.format(model_path, device))
+    logging.info('Loading model: {} on: {}'.format(model_path, device))
     
-    model = DLRModel(model_path, device)
+    return DLRModel(model_path, device)
+
+def neo_inference(model, data):
+    import logging
+
+    logging.info('Invoking inference for model')
+    
     input_data = {'data': data}
+    
     return model.run(input_data)[0]
 
 ### NOTE: this function cannot use MXNet
-def neo_preprocess(payload, content_type):
+def neo_preprocess(payload, content_type, bbox=None, image_size=(112, 112)):
     import logging
     import numpy as np
     import io
@@ -55,11 +62,23 @@ def neo_preprocess(payload, content_type):
         f = io.BytesIO(payload)
         return np.load(f)
     elif content_type == 'application/x-image':
-        import PIL.Image # Training container doesn't have this package
+        # Only load PIL if required to transform bytes
+        import PIL.Image
         f = io.BytesIO(payload)
-        image = PIL.Image.open(f).convert('RGB') # Load image and convert to RGB space
-        image = np.asarray(image.resize((112, 112))) # Resize
-        image = np.rollaxis(image, axis=2, start=0)[np.newaxis, :] # Transpose
+        # Load image and convert to RGB space
+        image = PIL.Image.open(f).convert('RGB')
+        # Crop relative to image size
+        if bbox != None:
+            width, height = image.size
+            x1 = int(bbox['Left'] * width)
+            y1 = int(bbox['Top'] * height)
+            x2 = int(bbox['Left'] * width + bbox['Width'] * width)
+            y2 = int(bbox['Top'] * height + bbox['Height']  * height)
+            image = image.crop((x1, y1, x2, y2))
+        # Resize
+        image = image.resize(image_size)
+         # Transpose
+        return np.rollaxis(np.asarray(image), axis=2, start=0)[np.newaxis, :]
     else:
         raise RuntimeError('Content type must be application/x-image or application/x-npy')
 
