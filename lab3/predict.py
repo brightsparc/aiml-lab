@@ -1,3 +1,29 @@
+def model_fn(model_dir, prefered_batch_size=1, image_size=(112,112)):
+    """Function responsible for loading the model.
+    Args:
+        model_dir (str): The directory where model files are stored
+    Returns:
+        mxnet.mod.Module: the loaded model.
+    """
+    
+    import mxnet as mx
+    import os
+    import logging
+    
+    logging.info('Invoking model load')    
+    
+    data_shapes = [('data', (prefered_batch_size, 3, image_size[0], image_size[1]))]
+
+    sym, args, aux = mx.model.load_checkpoint(os.path.join(model_dir, 'model'), 0)
+
+    ctx = mx.cpu()
+                   
+    model = mx.mod.Module(symbol=sym, context=ctx, label_names=None)
+    model.bind(for_training=False, data_shapes=data_shapes)
+    model.set_params(args, aux, allow_missing=True)
+
+    return model
+
 def transform_fn(model, request_body, request_content_type, accept_type):
     """
     Transform a request using the Gluon model. Called once per request.
@@ -16,14 +42,14 @@ def transform_fn(model, request_body, request_content_type, accept_type):
     
     array = neo_preprocess(request_body, request_content_type)
     
-    print('input', array)
+    logging.debug('Model input: {}'.format(array))
 
     data = mx.nd.array(array)
     db = mx.io.DataBatch(data=(data,))
     model.forward(db, is_train=False)
     output = model.get_outputs()[0].asnumpy()
-    
-    print('output', output)
+
+    logging.debug('Model output: {}'.format(output))
 
     if accept_type == 'application/json':
         return neo_postprocess(output)
