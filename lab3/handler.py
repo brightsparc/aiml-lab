@@ -7,21 +7,8 @@ model = None
 def lambda_handler(event, context): 
     global model
 
-    # Decode Image Bytes, or download S3Object
-    if not 'Image' in event:
-        return { 'Status': 400, 'Body': 'Image not found' }
-    if 'Bytes' in event['Image']:
-        import base64
-        payload = base64.b64decode(event['Image']['Bytes'])
-    elif 'S3Object' in event['Image']:
-        import boto3
-        s3 = boto3.resource('s3')
-        image = event['Image']['S3Object']
-        payload = s3.Object(image['Bucket'], image['Name']).get()['Body'].read()
-    
-    # Preprocess to get numpy array with optional bounding box
-    bbox = event.get('BoundingBox')
-    image = predict.neo_preprocess(payload, 'application/x-image', bbox=bbox)
+    # Preprocess json payload get numpy array
+    image = predict.neo_preprocess(json.dumps(event), 'application/json')
 
     current_milli_time = lambda: int(round(time.time() * 1000))
 

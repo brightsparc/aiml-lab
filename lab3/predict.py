@@ -5,15 +5,23 @@ def model_fn(model_dir, prefered_batch_size=1, image_size=(112,112)):
     Returns:
         mxnet.mod.Module: the loaded model.
     """
-    
     import platform
     import mxnet as mx
     import os
     import logging
     
+    import subprocess
+    import sys
+    
+    # Workaround until support requirements.txt for dependencies
+    # See: https://github.com/aws/sagemaker-python-sdk/issues/284
+    logging.info('Installing dependencies for pillow')
+    
+    subprocess.call([sys.executable, '-m', 'pip', 'install', '-U', 'pillow'])
+                             
     logging.info('Invoking model load for py:{} mxnet:{}'.format(
         platform.python_version(), mx.__version__))
-    
+        
     data_shapes = [('data', (prefered_batch_size, 3, image_size[0], image_size[1]))]
 
     sym, args, aux = mx.model.load_checkpoint(os.path.join(model_dir, 'model'), 0)
@@ -24,10 +32,6 @@ def model_fn(model_dir, prefered_batch_size=1, image_size=(112,112)):
     model.bind(for_training=False, data_shapes=data_shapes)
     model.set_params(args, aux, allow_missing=True)
     
-    # DEBUG: Print out the model summary to see its the same size
-    # print(mx.viz.print_summary(model.symbol))
-    # print(model.get_params())
-
     return model
 
 def transform_fn(model, request_body, request_content_type, accept_type):
@@ -48,7 +52,6 @@ def transform_fn(model, request_body, request_content_type, accept_type):
     
     array = neo_preprocess(request_body, request_content_type)
     
-    #logging.debug('Model input: {}'.format(array))
     logging.debug('Model input: {}'.format(array))
 
     data = mx.nd.array(array)
@@ -84,17 +87,12 @@ def neo_inference(model, data):
     return model.run(input_data)[0]
 
 ### NOTE: this function cannot use MXNet
-def neo_preprocess(payload, content_type, bbox=None, image_size=(112, 112)):
+def neo_preprocess(payload, content_type):
     import logging
     import numpy as np
     import io
 
-    logging.info('Invoking user-defined pre-processing function')
-
-    if content_type == 'application/x-npy':
-        f = io.BytesIO(payload)
-        return np.load(f)
-    elif content_type == 'application/x-image':
+    def crop_image(payload, bbox=None, image_size=(112, 112)):
         # Only load PIL if required to transform bytes
         import PIL.Image
         f = io.BytesIO(payload)
@@ -111,9 +109,27 @@ def neo_preprocess(payload, content_type, bbox=None, image_size=(112, 112)):
         # Resize
         image = image.resize(image_size)
          # Transpose
-        return np.rollaxis(np.asarray(image), axis=2, start=0)[np.newaxis, :]
+        return np.rollaxis(np.asarray(image), axis=2, start=0)[np.newaxis, :]        
+
+    logging.info('Invoking user-defined pre-processing function')
+
+    if content_type == 'application/x-npy':
+        f = io.BytesIO(payload)
+        return np.load(f)
+    elif content_type == 'application/x-image':
+        return crop_image(payload)
+    elif content_type == 'application/json':
+        import json
+        import base64
+        event = json.loads(payload)
+        if not 'Image' in event and not 'Bytes' in event['Image']:
+            raise RuntimeError('Require Image Bytes for application/json')
+        # Decode base64 image bytes, and optionally get bounding box for crop
+        payload = base64.b64decode(event['Image']['Bytes'])
+        bbox = event.get('BoundingBox')
+        return crop_image(payload, bbox)
     else:
-        raise RuntimeError('Content type must be application/x-image or application/x-npy')
+        raise RuntimeError('Content type must be application/json, application/x-image or application/x-npy')
 
 ### NOTE: this function cannot use MXNet
 def neo_postprocess(result):
