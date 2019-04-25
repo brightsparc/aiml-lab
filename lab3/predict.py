@@ -95,7 +95,7 @@ def neo_preprocess(payload, content_type):
     def get_bbox_roll(payload):
         # Only import boto3 if we need to call rekognition API for bbox/roll
         import boto3
-        print('calling rekognition')  #TEMP
+        logging.debug('calling rekognition')                 
         rekognition = boto3.client('rekognition')
         ret = rekognition.detect_faces(
             Image={ 'Bytes': payload },
@@ -107,6 +107,7 @@ def neo_preprocess(payload, content_type):
     def crop_image(payload, bbox=None, roll=0, margin=0, image_size=(112, 112)):
         # Only load PIL if required to transform bytes
         import PIL.Image
+        logging.debug('crop image bbox: {}, roll: {}, margin: {}'.format(bbox, roll, margin))                 
         # Load image and convert to RGB space
         f = io.BytesIO(payload)
         image = PIL.Image.open(f).convert('RGB')
@@ -128,7 +129,6 @@ def neo_preprocess(payload, content_type):
             image = image.crop((x1, y1, x2, y2))
         # Rotate expanding size
         if roll != 0:
-            print('rotating', roll) #TEMP     
             image = image.rotate(roll, expand=True)        
         # Resize
         image = image.resize(image_size)
@@ -147,6 +147,8 @@ def neo_preprocess(payload, content_type):
     elif content_type == 'application/json':
         import json
         import base64
+        if isinstance(payload, (bytes, bytearray)):
+            payload = payload.decode('utf-8')
         event = json.loads(payload)
         if not 'Image' in event and not 'Bytes' in event['Image']:
             raise RuntimeError('Require Image Bytes for application/json')
