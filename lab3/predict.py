@@ -91,12 +91,24 @@ def neo_preprocess(payload, content_type):
     import logging
     import numpy as np
     import io
-
-    def crop_image(payload, bbox=None, image_size=(112, 112)):
+    
+    def get_bbox_roll(payload):
+        # Only import boto3 if we need to call rekognition API for bbox/roll
+        import boto3
+        print('calling rekognition')  #TEMP
+        rekognition = boto3.client('rekognition')
+        ret = rekognition.detect_faces(
+            Image={ 'Bytes': payload },
+            Attributes=['DEFAULT'],
+        )
+        # Return bbox and roll rounded to 90 degrees
+        return ret['FaceDetails'][0]['BoundingBox'], round(ret['FaceDetails'][0]['Pose']['Roll']/90)*90
+    
+    def crop_image(payload, bbox=None, roll=0, margin=0, image_size=(112, 112)):
         # Only load PIL if required to transform bytes
         import PIL.Image
-        f = io.BytesIO(payload)
         # Load image and convert to RGB space
+        f = io.BytesIO(payload)
         image = PIL.Image.open(f).convert('RGB')
         # Crop relative to image size
         if bbox != None:
@@ -105,11 +117,23 @@ def neo_preprocess(payload, content_type):
             y1 = int(bbox['Top'] * height)
             x2 = int(bbox['Left'] * width + bbox['Width'] * width)
             y2 = int(bbox['Top'] * height + bbox['Height']  * height)
+            # Add margin as 
+            if margin > 0:
+                if isinstance(margin, float):
+                    margin = int(margin*width)
+                x1 = np.maximum(x1-margin, 0)
+                y1 = np.maximum(y1-margin, 0)
+                x2 = np.minimum(x2+margin, width)
+                y2 = np.minimum(y2+margin, height)
             image = image.crop((x1, y1, x2, y2))
+        # Rotate expanding size
+        if roll != 0:
+            print('rotating', roll) #TEMP     
+            image = image.rotate(roll, expand=True)        
         # Resize
         image = image.resize(image_size)
          # Transpose
-        return np.rollaxis(np.asarray(image), axis=2, start=0)[np.newaxis, :]        
+        return np.rollaxis(np.asarray(image), axis=2, start=0)[np.newaxis, :]   
 
     logging.info('Invoking user-defined pre-processing function')
 
@@ -117,17 +141,23 @@ def neo_preprocess(payload, content_type):
         f = io.BytesIO(payload)
         return np.load(f)
     elif content_type == 'application/x-image':
-        return crop_image(payload)
+        # Get bbox if we have image only
+        bbox, roll = get_bbox_roll(payload)
+        return crop_image(payload, bbox, roll)
     elif content_type == 'application/json':
         import json
         import base64
         event = json.loads(payload)
         if not 'Image' in event and not 'Bytes' in event['Image']:
             raise RuntimeError('Require Image Bytes for application/json')
-        # Decode base64 image bytes, and optionally get bounding box for crop
+        # Decode base64 image bytes
         payload = base64.b64decode(event['Image']['Bytes'])
-        bbox = event.get('BoundingBox')
-        return crop_image(payload, bbox)
+        # If we have bounding box and roll pass these through
+        if 'BoundingBox' in event and 'Roll' in event:
+            bbox, roll = event['BoundingBox'], event['Roll']
+        else:
+            bbox, roll = get_bbox_roll(payload)
+        return crop_image(payload, bbox, roll)
     else:
         raise RuntimeError('Content type must be application/json, application/x-image or application/x-npy')
 
