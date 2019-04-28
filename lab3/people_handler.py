@@ -16,28 +16,27 @@ def load_file(event):
         payload = people_object.get()['Body'].read()
         f = io.BytesIO(payload)
         people = np.load(f)
-        return people['vecs'].tolist(), people['names'].tolist(), set(people['checksums'])
+        return people['vecs'].tolist(), people['names'].tolist(), people['keys'].tolist(), set(people['checksums'])
     except Exception as e:
         print('Initialize new file', e)
-        return [], [], set()
-
+        return [], [], [], set()
+        
 # Save the npz to temp file and get payload
-def save_file(event, vecs, names, checksums):
+def save_file(event, vecs, names, keys, checksums):
     from tempfile import TemporaryFile
     outfile = TemporaryFile()
-    np.savez(outfile, vecs=vecs, names=names, checksums=list(checksums))
+    np.savez(outfile, vecs=vecs, names=names, keys=keys, checksums=list(checksums))
     outfile.seek(0)
     payload = outfile.read()
     resp = s3_client.put_object(Bucket=event['OutputBucket'], Key=event['OutputKey'], Body=payload)
     return resp['ETag'].strip('"')    
-    
-def get_new_keys(event, checksums):    
-    keys = []
-    batch_keys = 10
-    limit_keys = 100
+
+def get_new_contents(event, checksums, batch_size=10, batch_limit=100):    
+    print('getting contents batch size: {}, limit: {}'.format(batch_size, batch_limit))
+    contents = []
     is_truncated = False
     
-    def filter_new_keys(response, checksums):
+    def filter_by_checksum(response, checksums):
         return [(content['Key'], content['ETag'].strip('"')) for content in response['Contents']
                 if content['Size'] > 0 and not content['ETag'].strip('"') in checksums]
     
@@ -45,10 +44,9 @@ def get_new_keys(event, checksums):
     response = s3_client.list_objects_v2(
         Bucket=event['InputBucket'],
         Prefix=event.get('InputPrefix'),
-        Delimiter='/',
-        MaxKeys=batch_keys
+        MaxKeys=batch_size
     )
-    keys += filter_new_keys(response, checksums)
+    contents += filter_by_checksum(response, checksums)
 
     # Get remaining response
     while response['IsTruncated']:
@@ -56,20 +54,19 @@ def get_new_keys(event, checksums):
             ContinuationToken=response['NextContinuationToken'],
             Bucket=event['InputBucket'],
             Prefix=event.get('InputPrefix'),
-            Delimiter='/',
-            MaxKeys=batch_keys
+            MaxKeys=batch_size
         )
-        keys += filter_new_keys(response, checksums)
-        if len(keys) > limit_keys:
-            print('Reached limit: {}'.format(len(keys)))
+        contents += filter_by_checksum(response, checksums)
+        if len(contents) > batch_limit:
+            print('Reached limit: {}'.format(len(contents)))
             is_truncated = True
             break
     
-    return keys, is_truncated
+    return contents, is_truncated
 
-def download_keys(event, keys, vecs, names, checksums):
-    for (key, checksum) in keys:
-        if checksum in checksums:
+def download_contents(event, contents, vecs, names, keys, checksums=None):
+    for (key, checksum) in contents:
+        if checksums and checksum in checksums:
             print('Skip', checksum)
             continue
         # Get image object
@@ -82,11 +79,19 @@ def download_keys(event, keys, vecs, names, checksums):
                                               ContentType='application/x-image',
                                               Body=payload)
         vec = json.loads(response['Body'].read().decode())
-        # Append vector to 
-        vecs.append(vec)
-        names.append(name)
-        checksums.add(checksum)
-        print('Added', name)
+        try:
+            # Attempt to replace key, or else, append to list
+            index = keys.index(key)
+            vecs[index] = vec
+            names[index] = name
+            print('Updated', index, name)
+        except ValueError:
+            print('Added', name)
+            vecs.append(vec)
+            names.append(name)
+            keys.append(key)
+        if checksums:
+            checksums.add(checksum)
     
 def lambda_handler(event, context): 
     current_milli_time = lambda: int(round(time.time() * 1000))
@@ -98,32 +103,33 @@ def lambda_handler(event, context):
     vecs, names, checksums = load_file(event)
     print('loaded count: {}'.format(len(checksums)))    
     
-    ### Get new keys we don't have checksums for ###    
+    ### Get new contents we don't have checksums for ###    
     
-    keys, is_truncated = get_new_keys(event, checksums)
-    print('Added {} keys, truncated: {}'.format(len(keys), is_truncated))
+    contents, is_truncated = get_new_contents(event, checksums)
+    print('Added {} contents, truncated: {}'.format(len(contents), is_truncated))
+    
+    ### Dowloading contents ###
 
-    ### Dowloading keys ###
-
-    print('downloading keys: {}'.format(len(keys)))
-    download_keys(event, keys, vecs, names, checksums)    
-
+    print('downloading contents: {}'.format(len(contents)))
+    download_contents(event, contents, vecs, names, keys, checksums)
+    
     ### Upload new file ###
 
     people_etag = ''
     
-    if len(keys) > 0:
+    if len(contents) > 0:
         print('uploading file: {}/{}'.format(event['OutputBucket'], event['OutputKey']))
-        people_etag = save_file(event, vecs, names, checksums)   
+        people_etag = save_file(event, vecs, names, keys, checksums) 
     
     t2 = current_milli_time()
     
     ### Return status ###
     
     return {    
-        'Added': len(keys),
+        'Added': len(contents),
         'IsTruncated': is_truncated,
-        'Total': len(checksums),
+        'Total': len(keys),
+        'Unique': len(checksums),
         'ETag': people_etag,
         'Duration': t2-t1
     }
