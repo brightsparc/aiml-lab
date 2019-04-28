@@ -8,6 +8,7 @@ import time
 s3_client = boto3.client('s3')
 s3 = boto3.resource('s3')
 sm_runtime = boto3.Session().client('sagemaker-runtime')
+iot_client = boto3.client('iot-data')
 
 def load_file(event):
     try:
@@ -64,9 +65,9 @@ def get_new_contents(event, checksums, batch_size=10, batch_limit=100):
     
     return contents, is_truncated
 
-def download_contents(event, contents, vecs, names, keys, checksums=None):
+def download_contents(event, contents, vecs, names, keys, checksums):
     for (key, checksum) in contents:
-        if checksums and checksum in checksums:
+        if checksum in checksums:
             print('Skip', checksum)
             continue
         # Get image object
@@ -84,24 +85,36 @@ def download_contents(event, contents, vecs, names, keys, checksums=None):
             index = keys.index(key)
             vecs[index] = vec
             names[index] = name
-            print('Updated', index, name)
+            print('Updated #{} key: {}, name: {}'.format(index, key, name))
         except ValueError:
-            print('Added', name)
+            print('Added key: {}, name: {}'.format(key, name))
             vecs.append(vec)
             names.append(name)
             keys.append(key)
-        if checksums:
-            checksums.add(checksum)
-    
-def lambda_handler(event, context): 
+        checksums.add(checksum)
+
+def update_shadow(thing_name, desired_state):
+    shadow = {
+        'state': {
+            'desired' : desired_state
+        }    
+    }
+    response = iot_client.update_thing_shadow(
+        thingName=thing_name,
+        payload=json.dumps(shadow)
+    )
+    shadow = json.loads(response["payload"].read())    
+    return shadow['state']['desired']
+
+def function_handler(event, context): 
     current_milli_time = lambda: int(round(time.time() * 1000))
 
     t1 = current_milli_time()
 
     ### Load existing vecs names and checksums ###
 
-    vecs, names, checksums = load_file(event)
-    print('loaded count: {}'.format(len(checksums)))    
+    vecs, names, keys, checksums = load_file(event)
+    print('loaded count: {}'.format(len(checksums)))
     
     ### Get new contents we don't have checksums for ###    
     
@@ -123,7 +136,18 @@ def lambda_handler(event, context):
     
     t2 = current_milli_time()
     
-    ### Return status ###
+    ### Update shadow ###
+    
+    if 'ThingName' in event:
+        state = {
+            'people': {
+                'Etag': people_etag,
+                'Bucket': event['OutputBucket'],
+                'Key': event['OutputKey']
+            }
+        }
+        resp = update_shadow(event['ThingName'], state)
+        print('updated shadow', json.dumps(resp))
     
     return {    
         'Added': len(contents),
