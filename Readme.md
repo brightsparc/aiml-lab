@@ -28,3 +28,4 @@ Each lab has a read-me to get started.
 * [Lab 1](lab1/Readme.md) AI Services
 * [Lab 2](lab2/Readme.md) Introduction to Amazon SageMaker
 * [Lab 3](lab3/Readme.md) Face Recognition
+* [Lab 4](lab3/Readme.md) R kernel, BYOM and inline inference examples
