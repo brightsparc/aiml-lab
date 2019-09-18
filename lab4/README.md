@@ -1,9 +1,8 @@
-# Bring Your Own R Algorithm
+# Lab 4
 
-This folder contains one notebook and several helper files:
+This lab demonstrates the various ways you can use R in Amazon SageMaker.
 
-*mars.R* and *plumber.R:* are scripts written in the R statistical language which define training and hosting functions as specified for the Amazon SageMaker, bring your own algorithm/container documentation.
-
-*Dockerfile:* is the necessary configuration for building a docker container that calls the `mars.R` script.
-
-*r_bring_your_own.ipynb:* is a notebook that calls the custom container once built and pushed into ECR.
+1. [R inference](r_inference.ipynb) in the kernel
+2. [Using R](using_r_with_amazon_sagemaker.ipynb) script to to kick off an XGBoost job
+3. [BYO R model](r_bring_your_own.ipynb) built in python calling the customer container once built and pushed into ECR
+4. [BYO R model](native_r_bring_your_own.ipynb) as above but in R.
